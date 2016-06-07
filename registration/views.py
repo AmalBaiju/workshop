@@ -6,6 +6,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.core.urlresolvers import reverse_lazy
 from registration.forms import *
 from workshop import *
+from django.views.generic.detail import DetailView
 # Create your views here.
 class Home(ListView):
 
@@ -32,6 +33,8 @@ class UserRegistrationView(AnonymousRequiredMixin, FormView):
             response = func(request, *args, **kwargs)
             return response
         return as_view
+
+
 class AddChocolateView(FormView):
     template_name="add_chocolate.html"
     form_class=ChocolateAddForm
@@ -40,3 +43,30 @@ class AddChocolateView(FormView):
     def form_valid(self, form):
         form.save()
         return FormView.form_valid(self, form)
+
+
+class ChocolateDetailsView(DetailView):
+    template_name = "chocolate_detail.html"
+
+    def get_object(self, queryset=None):
+        choco_id = self.kwargs['choco_id']
+        obj = Chocolate.objects.get(id=choco_id)
+        if obj:
+            return obj
+        else:
+            raise Http404("No details Found.")
+
+class CurrentUserMixin(object):
+    model = User
+
+    def get_object(self, *args, **kwargs):
+        try: obj = super(CurrentUserMixin, self).get_object(*args, **kwargs)
+        except AttributeError: obj = self.request.user
+        return obj
+
+
+class UserProfileUpdateView(LoginRequiredMixin, CurrentUserMixin, UpdateView):
+    model = User
+    fields = user_fields + user_extra_fields
+    template_name_suffix = '_update_form'
+    success_url = '/registration/user/success'
